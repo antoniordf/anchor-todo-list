@@ -4,6 +4,8 @@ declare_id!("B2rZv3dWpN4xnQvigyBfG9eJR4Bsji6sgBd8i8rQvgg3");
 
 #[program]
 pub mod todo_list_app {
+    // use anchor_lang::solana_program::clock;
+
     use super::*;
 
     pub fn adding_task(ctx: Context<AddingTask>, text: String) -> Result<()> {
@@ -20,6 +22,26 @@ pub mod todo_list_app {
         task.text = text;
         Ok(())
     }
+
+    pub fn updating_task(ctx: Context<UpdatingTask>, is_done: bool) -> Result<()> {
+        let task = &mut ctx.accounts.task;
+        let author = &ctx.accounts.author; // The author account
+        let clock = Clock::get().unwrap(); // Getting the current timestamp
+        task.author = *author.key;
+        task.is_done = is_done;
+        task.updated_at = clock.unix_timestamp;
+        Ok(())
+    }
+
+    pub fn deleting_task(ctx: Context<DeletingTask>) -> Result<()> {
+        let task = &mut ctx.accounts.task;
+        let author = &ctx.accounts.author; // The author account
+        let clock = Clock::get().unwrap(); // Getting the current timestamp
+        task.author = *author.key;
+        task.is_done = true;
+        task.updated_at = clock.unix_timestamp;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -29,6 +51,20 @@ pub struct AddingTask<'info> {
     #[account(mut)]
     pub author: Signer<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdatingTask<'info> {
+    #[account(mut, has_one = author)]
+    pub task: Account<'info, Task>,
+    pub author: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct DeletingTask<'info> {
+    #[account(mut, has_one = author)]
+    pub task: Account<'info, Task>,
+    pub author: Signer<'info>,
 }
 
 #[account]
